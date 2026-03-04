@@ -9,6 +9,7 @@ run $(find . -type f -path '*/HiFi-human-WGS-Genomic-Stability_Nextflow_v2/main.
 -with-dag './.nextflow/pipeline_info/pipeline_dag.svg' \
 -with-report './.nextflow/pipeline_info/execution_report.html' \
 -with-trace './.nextflow/pipeline_info/execution_trace.txt' \
+-profile standard \
 --sample_table $(find $(pwd) -type f -name 'sample_table.csv')"
 
 # Print out command
