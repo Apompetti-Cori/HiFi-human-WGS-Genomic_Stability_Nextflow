@@ -31,9 +31,7 @@ Module declaration
 
 process SPLIT_INPUT_BAM {
 
-    maxForks 4
-    cpus 16
-    memory 32
+    maxForks 10
     cache 'lenient'
 
     // Set batch name and sample id to tag
@@ -48,7 +46,7 @@ process SPLIT_INPUT_BAM {
     tuple val(meta), path("*.{chunk_*,reset}.bam"), emit: bam
 
     script:
-    def threads = task.cpus > 1 ? task.cpus - 1 : 0
+    def threads = 16
     def movie = bam.simpleName
 
     """

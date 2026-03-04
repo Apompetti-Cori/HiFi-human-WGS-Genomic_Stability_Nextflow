@@ -82,26 +82,33 @@ workflow PBMM2 {
     genome_ch = createGenomeChannel(sample_table, params.genomes)
 
     // Align each split bam separately
-    split_ch = genome_ch
-        .cross(split_ch)
-        .map{ g, s ->
-            new_meta = g[0] + [
-                build: g[2]
+    split_genome_ch = split_ch
+        .combine(genome_ch, by: 0)
+        .map{ m, b, g, v ->
+            new_meta = m + [
+                build: v
             ]
-            genome = g[1]
-            bam = s[1]
+            genome = g
+            bam = b
             db = file(genome.db)
             fasta = file(genome.fasta)
+            fasta_index = file(genome.fasta_index)
             pbindex = file(genome.pbindex)
 
-            return [new_meta, [db, fasta, pbindex], bam]
+            return [new_meta, [db, fasta, fasta_index, pbindex], bam]
         }
-    
-    PBMM2_ALIGN(split_ch)
+
+    PBMM2_ALIGN(split_genome_ch)
 
     // Merge split bam alignments
     align_ch = PBMM2_ALIGN.out.bam
+        .groupTuple(by: [0])
+        .map{ m, g, b ->
+            return [m, g[1], b]
+        }
 
-    align_ch.view()
-    //SAMTOOLS_MERGE(align_ch)
+    SAMTOOLS_MERGE(align_ch)
+
+    emit:
+        bam_ch = SAMTOOLS_MERGE.out.bam
 }

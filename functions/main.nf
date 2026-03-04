@@ -92,6 +92,7 @@ def createGenomeChannel(String sample_table, Map genomes) {
             def max_reads_per_alignment_chunk = row.max_reads_per_alignment_chunk ?: 500000
             def db = row.genome ? genomes[ row.genome ].db ?: false : false
             def fasta = row.genome ? genomes[ row.genome ].fasta ?: false : false
+            def fasta_index = row.genome ? genomes[ row.genome ].fasta_index ?: false : false
             def pbindex = row.genome ? genomes[ row.genome ].pbindex ?: false : false
             
             def meta = [
@@ -105,6 +106,7 @@ def createGenomeChannel(String sample_table, Map genomes) {
             def genome = [
                 db : db,
                 fasta : fasta,
+                fasta_index : fasta_index,
                 pbindex : pbindex
             ]
 

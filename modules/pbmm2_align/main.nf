@@ -31,12 +31,11 @@ Module declaration
 
 process PBMM2_ALIGN {
 
-    maxForks 3
-    cpus 32
+    maxForks 2
     cache 'lenient'
 
     // Set batch name and sample id to tag
-    tag { meta.batch == '' ? "${meta.id}" : "${meta.batch}_${meta.id}" }
+    tag { meta.batch == '' ? "${meta.id}" : "${meta.batch}_${meta.id}_${meta.build}" }
 
     // Do not publish data
 
@@ -47,11 +46,13 @@ process PBMM2_ALIGN {
     tuple val(meta), path(resource_bundle), path("*.aligned.bam"), emit: bam
 
     script:
-    def threads = task.cpus > 1 ? task.cpus - 1 : 0
+    def threads = 32
     def movie = bam.baseName
+    
     def db = resource_bundle[0]
     def fasta = resource_bundle[1]
-    def pbindex = resource_bundle[2]
+    def fasta_index = resource_bundle[2]
+    def pbindex = resource_bundle[3]
 
     """
     pbmm2 align \
