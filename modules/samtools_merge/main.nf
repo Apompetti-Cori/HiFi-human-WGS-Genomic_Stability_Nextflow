@@ -38,6 +38,7 @@ process SAMTOOLS_MERGE {
     tag { meta.batch == '' ? "${meta.id}" : "${meta.batch}_${meta.id}_${meta.build}" }
 
     // Do not publish data
+    storeDir "${launchDir}/.nextflow/store/${meta.batch}/${meta.id}/${meta.build}/samtools_merge"
 
     input:
     tuple val(meta), path(resource_bundle), path(bams)

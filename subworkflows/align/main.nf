@@ -56,30 +56,44 @@ workflow ALIGN {
     // Create input channel for preprocessing samples
     input_ch = createPreprocessChannel(sample_table)
 
-    // Print out which samples and batches are being processed
-    input_ch
-        .map { meta, _bam -> meta.batch }
-        .unique()
-        .collect()
-        .subscribe { list -> 
-            println "Processing batches: ${list.join(', ')}" 
-        }
-
-    input_ch
-        .map { meta, _bam -> meta.id }
-        .unique()
-        .collect()
-        .subscribe { list -> 
-            println "Processing samples: ${list.join(', ')}" 
-        }
-
-    // Split bams from each sample into smaller bams for aligning 
-    SPLIT_INPUT_BAM(input_ch)
-    split_ch = SPLIT_INPUT_BAM.out.bam
-        .transpose()
-    
     // Create genome channels to merge to preprocessed bams
     genome_ch = createGenomeChannel(sample_table, params.genomes)
+    
+    // Check whether the final output of this subworkflow exists:
+    check_ch = genome_ch
+        .map { meta, ref, build ->
+            def pattern = "${launchDir}/.nextflow/store/${meta.batch}/${meta.id}/**/${meta.id}.${build}.merged.bam*"
+            def hit = file(pattern)
+
+            return [meta, ref, build, hit]
+        }
+        .branch { meta, ref, build, hit ->
+            //  If hit is not empty, it exists in storeDir
+            exists: !hit.isEmpty()
+            process: hit.isEmpty()
+        }
+    
+    
+    
+    // If so, recreate SAMTOOLS_MERGE channel
+    exist_ch = check_ch.exists.map { meta, ref, build, hit ->
+        def new_meta = meta + [build: build]
+        return [new_meta, ref, hit]
+    }
+
+    // If not, run SPLIT_INPUT_BAM and PBMM2_ALIGN on these samples
+    process_ch = check_ch.process.map { meta, ref, build, hit -> 
+        // Reconstruct the input for SPLIT_INPUT_BAM
+        return [ meta ]
+    }
+    
+    process_ch = input_ch
+        .combine(process_ch, by: 0)
+
+    // Split bams from each sample into smaller bams for aligning 
+    SPLIT_INPUT_BAM(process_ch)
+    split_ch = SPLIT_INPUT_BAM.out.bam
+        .transpose()
 
     // Align each split bam separately
     split_genome_ch = split_ch
@@ -109,6 +123,8 @@ workflow ALIGN {
 
     SAMTOOLS_MERGE(align_ch)
 
+    bam_ch = SAMTOOLS_MERGE.out.bam.collect(flat: false).flatMap().concat(exist_ch)
+
     emit:
-        bam_ch = SAMTOOLS_MERGE.out.bam.collect(flat: false)
+        bam_ch = bam_ch
 }

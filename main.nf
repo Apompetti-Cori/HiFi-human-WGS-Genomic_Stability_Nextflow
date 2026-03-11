@@ -60,5 +60,5 @@ workflow {
     ALIGN(params.sample_table)
 
     // Run VARIANT_CALLING subworkflow
-    VARIANT_CALLING(ALIGN.out.bam_ch)
+    //VARIANT_CALLING(ALIGN.out.bam_ch)
 }

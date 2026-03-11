@@ -50,7 +50,7 @@ workflow VARIANT_CALLING {
     main:
     // Create an empty channel for multiqc input
     def multiqc_ch = channel.empty()
-
+    
     // Scatter job across shards to speed up process
     shard_indices = Channel.of( 0..(params.num_shards - 1) )
     shard_indices_ch = shard_indices.combine(

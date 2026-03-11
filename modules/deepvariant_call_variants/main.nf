@@ -43,7 +43,7 @@ process DEEPVARIANT_CALL_VARIANTS {
     tuple val(meta), path(resource_bundle), path(tfrecords)
 
     output:
-    tuple val(meta), path(resource_bundle), path("*.call_variants_output.tar.gz")
+    tuple val(meta), path(resource_bundle), path("*.call_variants_output.tar.gz"), path(tfrecords)
 
     script:
     def total_deepvariant_tasks = 64

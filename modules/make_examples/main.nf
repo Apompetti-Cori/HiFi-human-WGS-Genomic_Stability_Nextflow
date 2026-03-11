@@ -31,7 +31,7 @@ Module declaration
 
 process MAKE_EXAMPLES {
 
-    maxForks 3
+    maxForks 4
     cache 'lenient'
 
     // Set batch name and sample id to tag
