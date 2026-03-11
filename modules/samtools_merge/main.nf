@@ -35,7 +35,7 @@ process SAMTOOLS_MERGE {
     cache 'lenient'
 
     // Set batch name and sample id to tag
-    tag { meta.batch == '' ? "${meta.id}" : "${meta.batch}_${meta.id}" }
+    tag { meta.batch == '' ? "${meta.id}" : "${meta.batch}_${meta.id}_${meta.build}" }
 
     // Do not publish data
 

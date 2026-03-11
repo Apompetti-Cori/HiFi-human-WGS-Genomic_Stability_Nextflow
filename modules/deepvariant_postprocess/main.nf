@@ -29,9 +29,9 @@ Module declaration
 ================================================================================
 */
 
-process PBMM2_ALIGN {
+process DEEPVARIANT_CALL_VARIANTS {
 
-    maxForks 3
+    maxForks 1
     cache 'lenient'
 
     // Set batch name and sample id to tag
@@ -40,32 +40,16 @@ process PBMM2_ALIGN {
     // Do not publish data
 
     input:
-    tuple val(meta), path(resource_bundle), path(bam)
+    tuple val(meta), path(resource_bundle)
 
     output:
-    tuple val(meta), path(resource_bundle), path("*.aligned.bam"), emit: bam
 
     script:
-    def threads = 32
-    def movie = bam.baseName
-    
-    def db = resource_bundle[0]
+    def threads = 2
+
     def fasta = resource_bundle[1]
     def fasta_index = resource_bundle[2]
-    def pbindex = resource_bundle[3]
 
     """
-    pbmm2 align \
-        --num-threads ${threads} \
-        --sort-memory 4G \
-        --preset HIFI \
-        --sample ${meta.id} \
-        --log-level INFO \
-        --sort \
-        --strip \
-        --min-length 50 \
-        ${pbindex} \
-        ${bam} \
-        ${meta.id}.${movie}.${meta.build}.aligned.bam
     """
 }

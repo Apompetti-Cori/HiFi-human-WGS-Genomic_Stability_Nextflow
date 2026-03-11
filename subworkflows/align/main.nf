@@ -45,7 +45,7 @@ Workflow declaration
 ================================================================================
 */
 
-workflow PBMM2 {
+workflow ALIGN {
     take:
         sample_table
 
@@ -110,5 +110,5 @@ workflow PBMM2 {
     SAMTOOLS_MERGE(align_ch)
 
     emit:
-        bam_ch = SAMTOOLS_MERGE.out.bam
+        bam_ch = SAMTOOLS_MERGE.out.bam.collect(flat: false)
 }

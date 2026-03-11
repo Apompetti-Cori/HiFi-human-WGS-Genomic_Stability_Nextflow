@@ -29,6 +29,7 @@ Include modules to main pipeline
 ================================================================================
 */
 include { MAKE_EXAMPLES } from '../../modules/make_examples/main.nf'
+include { DEEPVARIANT_CALL_VARIANTS } from '../../modules/deepvariant_call_variants/main.nf'
 
 /*
 ================================================================================
@@ -60,4 +61,10 @@ workflow VARIANT_CALLING {
         shard_indices_ch,
         params.num_shards
     )
+
+    // Collect MAKE_EXAMPLES output to be processed through DEEPVARIANT_CALL_VARIANTS
+    examples_collect_ch = MAKE_EXAMPLES.out.tfrecords
+        .collect()
+    
+    examples_collect_ch.view()
 }

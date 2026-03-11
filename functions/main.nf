@@ -94,6 +94,7 @@ def createGenomeChannel(String sample_table, Map genomes) {
             def fasta = row.genome ? genomes[ row.genome ].fasta ?: false : false
             def fasta_index = row.genome ? genomes[ row.genome ].fasta_index ?: false : false
             def pbindex = row.genome ? genomes[ row.genome ].pbindex ?: false : false
+            def sawfish_exclude = row.genome ? genomes[ row.genome ].sawfish_exclude ?: false : false
             
             def meta = [
                 id : id,
@@ -107,7 +108,8 @@ def createGenomeChannel(String sample_table, Map genomes) {
                 db : db,
                 fasta : fasta,
                 fasta_index : fasta_index,
-                pbindex : pbindex
+                pbindex : pbindex,
+                sawfish_exclude : sawfish_exclude
             ]
 
             [meta, genome, row.genome]

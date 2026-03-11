@@ -29,9 +29,9 @@ Module declaration
 ================================================================================
 */
 
-process PBMM2_ALIGN {
+process DEEPVARIANT_CALL_VARIANTS {
 
-    maxForks 3
+    maxForks 1
     cache 'lenient'
 
     // Set batch name and sample id to tag
@@ -40,32 +40,31 @@ process PBMM2_ALIGN {
     // Do not publish data
 
     input:
-    tuple val(meta), path(resource_bundle), path(bam)
+    tuple val(meta), path(resource_bundle), path(tfrecords)
 
     output:
-    tuple val(meta), path(resource_bundle), path("*.aligned.bam"), emit: bam
+    tuple val(meta), path(resource_bundle), path("*.call_variants_output.tar.gz")
 
     script:
-    def threads = 32
-    def movie = bam.baseName
-    
-    def db = resource_bundle[0]
+    def total_deepvariant_tasks = 64
+    def writer_threads = 8
+
     def fasta = resource_bundle[1]
     def fasta_index = resource_bundle[2]
-    def pbindex = resource_bundle[3]
 
     """
-    pbmm2 align \
-        --num-threads ${threads} \
-        --sort-memory 4G \
-        --preset HIFI \
-        --sample ${meta.id} \
-        --log-level INFO \
-        --sort \
-        --strip \
-        --min-length 50 \
-        ${pbindex} \
-        ${bam} \
-        ${meta.id}.${movie}.${meta.build}.aligned.bam
+    for tfrecord_tar in *.example_tfrecords.tar.gz; do
+        tar --no-same-owner --gzip --extract --verbose --file "\$tfrecord_tar"
+    done
+
+    /opt/deepvariant/bin/call_variants \
+        --writer_threads ${writer_threads} \
+        --outfile call_variants_output.tfrecord.gz \
+        --examples "example_tfrecords/make_examples.tfrecord@${total_deepvariant_tasks}.gz" \
+        --checkpoint "/opt/models/pacbio"
+
+    tar --gzip --create --verbose --file ${meta.id}.${meta.build}.call_variants_output.tar.gz call_variants_output*.tfrecord.gz \
+    && rm --verbose call_variants_output*.tfrecord.gz \
+    && rm --recursive --force --verbose example_tfrecords
     """
 }

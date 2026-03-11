@@ -31,10 +31,11 @@ Module declaration
 
 process MAKE_EXAMPLES {
 
-    maxForks 1
+    maxForks 3
+    cache 'lenient'
 
     // Set batch name and sample id to tag
-    tag { meta.batch == '' ? "${meta.id}" : "${meta.batch}_${meta.id}_${meta.build}" }
+    tag { meta.batch == '' ? "${meta.id}" : "${meta.batch}_${meta.id}_${meta.build}_${shard_index}" }
 
     // Do not publish data
 
@@ -43,12 +44,11 @@ process MAKE_EXAMPLES {
     val(num_shards)
 
     output:
-    path "*.example_tfrecords.tar.gz", emit: tfrecords
-    path "*.nonvariant_site_tfrecords.tar.gz", emit: gvcfs
+    tuple val(meta), path(resource_bundle), path("*.example_tfrecords.tar.gz"), path("*.nonvariant_site_tfrecords.tar.gz"), emit: tfrecords
 
     script:
     def total_deepvariant_tasks = 64
-    // defaults tasks: 8
+    // defaults tasks per shard: 8
     def tasks_per_shard = total_deepvariant_tasks / num_shards
     def task_start_index = shard_index * tasks_per_shard
     def task_end_index = task_start_index + tasks_per_shard - 1
@@ -73,7 +73,6 @@ process MAKE_EXAMPLES {
             --small_model_indel_gq_threshold "30" \
             --small_model_snp_gq_threshold "25" \
             --small_model_vaf_context_window_size "51" \
-            --trained_small_model_path "/opt/smallmodels/pacbio" \
             --trim_reads_for_pileup \
             --vsc_min_fraction_indels 0.12 \
             --pileup_image_width 147 \

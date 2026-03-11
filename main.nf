@@ -42,7 +42,7 @@ Include subworkflows to main pipeline
 ================================================================================
 */
 
-include { PBMM2 } from './subworkflows/pbmm2/main.nf'
+include { ALIGN } from './subworkflows/align/main.nf'
 include { VARIANT_CALLING } from './subworkflows/variant_calling/main.nf'
 
 /*
@@ -57,8 +57,8 @@ workflow {
     def multiqc_ch = channel.empty()
     
     // Run PBMM2 subworkflow
-    PBMM2(params.sample_table)
+    ALIGN(params.sample_table)
 
     // Run VARIANT_CALLING subworkflow
-    VARIANT_CALLING(PBMM2.out.bam_ch)
+    VARIANT_CALLING(ALIGN.out.bam_ch)
 }
