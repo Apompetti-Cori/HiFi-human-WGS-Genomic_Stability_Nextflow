@@ -86,9 +86,17 @@ workflow ALIGN {
         // Reconstruct the input for SPLIT_INPUT_BAM
         return [ meta ]
     }
-    
+
     process_ch = input_ch
         .combine(process_ch, by: 0)
+
+    // Check which build was not aligned to
+    check_genome_ch = check_ch.process.map { meta, ref, build, hit ->
+        return [ meta, ref, build ]
+    }
+
+    genome_ch = genome_ch
+        .join(check_genome_ch)
 
     // Split bams from each sample into smaller bams for aligning 
     SPLIT_INPUT_BAM(process_ch)
