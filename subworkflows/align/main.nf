@@ -78,7 +78,14 @@ workflow ALIGN {
     // If so, recreate SAMTOOLS_MERGE channel
     exist_ch = check_ch.exists.map { meta, ref, build, hit ->
         def new_meta = meta + [build: build]
-        return [new_meta, ref, hit]
+        def new_ref = [
+                file(ref.db),
+                file(ref.fasta),
+                file(ref.fasta_index),
+                file(ref.pbindex),
+                file(ref.sawfish_exclude)
+            ]
+        return [new_meta, new_ref, hit]
     }
 
     // If not, run SPLIT_INPUT_BAM and PBMM2_ALIGN on these samples
@@ -96,8 +103,13 @@ workflow ALIGN {
     }
 
     genome_ch = genome_ch
-        .join(check_genome_ch)
+        .combine(check_genome_ch, by: 2)
+        .map{ build, m1, r1, m2, r2 ->
 
+            return [ m1, r1, build ]
+        }
+
+    // If process_ch has samples inside it run them through the alignment steps
     // Split bams from each sample into smaller bams for aligning 
     SPLIT_INPUT_BAM(process_ch)
     split_ch = SPLIT_INPUT_BAM.out.bam
@@ -119,7 +131,7 @@ workflow ALIGN {
 
             return [new_meta, [db, fasta, fasta_index, pbindex], bam]
         }
-
+    
     PBMM2_ALIGN(split_genome_ch)
 
     // Merge split bam alignments
