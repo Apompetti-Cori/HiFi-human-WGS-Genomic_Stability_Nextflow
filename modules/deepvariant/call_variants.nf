@@ -40,17 +40,14 @@ process DEEPVARIANT_CALL_VARIANTS {
     // Do not publish data
 
     input:
-    tuple val(meta), path(resource_bundle), path(tfrecords)
+    tuple val(meta), path(resource_bundle), path(example_tfrecords), path(nonvariant_tfrecords)
 
     output:
-    tuple val(meta), path(resource_bundle), path("*.call_variants_output.tar.gz"), path(tfrecords)
+    tuple val(meta), path(resource_bundle), path("*.call_variants_output.tar.gz"), path(example_tfrecords), path(nonvariant_tfrecords)
 
     script:
     def total_deepvariant_tasks = 64
     def writer_threads = 8
-
-    def fasta = resource_bundle[1]
-    def fasta_index = resource_bundle[2]
 
     """
     for tfrecord_tar in *.example_tfrecords.tar.gz; do

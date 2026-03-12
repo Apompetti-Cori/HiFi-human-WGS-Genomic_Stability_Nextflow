@@ -28,8 +28,10 @@ params.num_shards = 8
 Include modules to main pipeline
 ================================================================================
 */
-include { MAKE_EXAMPLES } from '../../modules/make_examples/main.nf'
-include { DEEPVARIANT_CALL_VARIANTS } from '../../modules/deepvariant_call_variants/main.nf'
+include { MAKE_EXAMPLES } from '../../modules/deepvariant/make_examples.nf'
+include { DEEPVARIANT_CALL_VARIANTS } from '../../modules/deepvariant/call_variants.nf'
+include { DEEPVARIANT_POSTPROCESS } from '../../modules/deepvariant/postprocess.nf'
+include { SAWFISH_DISCOVER } from '../../modules/sawfish/discover.nf'
 
 /*
 ================================================================================
@@ -64,7 +66,19 @@ workflow VARIANT_CALLING {
 
     // Collect MAKE_EXAMPLES output to be processed through DEEPVARIANT_CALL_VARIANTS
     examples_collect_ch = MAKE_EXAMPLES.out.tfrecords
-        .collect()
+        .groupTuple()
+        .map{ meta, ref, ex, gvcf ->
+            return [meta, ref[0], ex, gvcf]
+        }
     
-    examples_collect_ch.view()
+    // Run DEEPVARIANT_CALL_VARIANTS
+    DEEPVARIANT_CALL_VARIANTS(
+        examples_collect_ch
+    )
+
+    // Run DEEPVARIANT_POSTPROCESS
+
+    // Combine bams with called variants to feed into SAWFISH_DISCOVER
+
+
 }
