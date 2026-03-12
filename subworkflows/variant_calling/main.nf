@@ -59,6 +59,7 @@ workflow VARIANT_CALLING {
         bam_ch
     )
 
+    // Run MAKE_EXAMPLES
     MAKE_EXAMPLES(
         shard_indices_ch,
         params.num_shards
@@ -76,9 +77,14 @@ workflow VARIANT_CALLING {
         examples_collect_ch
     )
 
+    call_variants_ch = DEEPVARIANT_CALL_VARIANTS.out.tfrecords
+        .collect(flat: false)
+    
+    call_variants_ch.view()
+
     // Run DEEPVARIANT_POSTPROCESS
 
     // Combine bams with called variants to feed into SAWFISH_DISCOVER
 
-
+    // Run SAWFISH_CALL
 }

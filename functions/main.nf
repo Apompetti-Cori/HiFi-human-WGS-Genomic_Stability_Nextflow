@@ -58,7 +58,8 @@ def createPreprocessChannel(String sample_table) {
             def sample = row.sample
             def batch = row.batch
             def condition = row.condition
-            def bam = file(row.bam_path, checkIfExists: false).sort{ file -> file.name }
+            def sex = row.sex ?: "FEMALE"
+            def bam = files(row.bam_path, checkIfExists: true).sort{ file -> file.name }
             def max_reads_per_alignment_chunk = row.max_reads_per_alignment_chunk ?: 500000
             
             def meta = [
@@ -66,6 +67,7 @@ def createPreprocessChannel(String sample_table) {
                 sample: sample,
                 batch : batch,
                 condition : condition,
+                sex : sex,
                 max_reads_per_alignment_chunk : max_reads_per_alignment_chunk
             ]
 
@@ -89,18 +91,21 @@ def createGenomeChannel(String sample_table, Map genomes) {
             def sample = row.sample
             def batch = row.batch
             def condition = row.condition
+            def sex = row.sex ?: "FEMALE"
             def max_reads_per_alignment_chunk = row.max_reads_per_alignment_chunk ?: 500000
             def db = row.genome ? genomes[ row.genome ].db ?: false : false
             def fasta = row.genome ? genomes[ row.genome ].fasta ?: false : false
             def fasta_index = row.genome ? genomes[ row.genome ].fasta_index ?: false : false
             def pbindex = row.genome ? genomes[ row.genome ].pbindex ?: false : false
             def sawfish_exclude = row.genome ? genomes[ row.genome ].sawfish_exclude ?: false : false
+            def sawfish_expect = row.genome ? genomes[ row.genome ].sawfish_expect[sex] ?: false : false
             
             def meta = [
                 id : id,
                 sample: sample,
                 batch : batch,
                 condition : condition,
+                sex : sex,
                 max_reads_per_alignment_chunk : max_reads_per_alignment_chunk
             ]
 
@@ -109,7 +114,8 @@ def createGenomeChannel(String sample_table, Map genomes) {
                 fasta : fasta,
                 fasta_index : fasta_index,
                 pbindex : pbindex,
-                sawfish_exclude : sawfish_exclude
+                sawfish_exclude : sawfish_exclude,
+                sawfish_expect : sawfish_expect
             ]
 
             [meta, genome, row.genome]

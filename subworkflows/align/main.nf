@@ -29,7 +29,7 @@ Include modules to main pipeline
 */
 include { SPLIT_INPUT_BAM } from '../../modules/split_input_bam/main.nf'
 include { PBMM2_ALIGN } from '../../modules/pbmm2_align/main.nf'
-include { SAMTOOLS_MERGE } from '../../modules/samtools_merge/main.nf'
+include { SAMTOOLS_MERGE } from '../../modules/samtools/merge.nf'
 
 /*
 ================================================================================
@@ -58,6 +58,7 @@ workflow ALIGN {
 
     // Create genome channels to merge to preprocessed bams
     genome_ch = createGenomeChannel(sample_table, params.genomes)
+
     
     // Check whether the final output of this subworkflow exists:
     check_ch = genome_ch
@@ -77,14 +78,17 @@ workflow ALIGN {
     
     // If so, recreate SAMTOOLS_MERGE channel
     exist_ch = check_ch.exists.map { meta, ref, build, hit ->
+
         def new_meta = meta + [build: build]
         def new_ref = [
                 file(ref.db),
                 file(ref.fasta),
                 file(ref.fasta_index),
                 file(ref.pbindex),
-                file(ref.sawfish_exclude)
+                file(ref.sawfish_exclude),
+                file(ref.sawfish_expect)
             ]
+            
         return [new_meta, new_ref, hit]
     }
 
@@ -110,7 +114,7 @@ workflow ALIGN {
         }
 
     // If process_ch has samples inside it run them through the alignment steps
-    // Split bams from each sample into smaller bams for aligning 
+    // Split bams from each sample into smaller bams for aligning
     SPLIT_INPUT_BAM(process_ch)
     split_ch = SPLIT_INPUT_BAM.out.bam
         .transpose()
@@ -118,18 +122,22 @@ workflow ALIGN {
     // Align each split bam separately
     split_genome_ch = split_ch
         .combine(genome_ch, by: 0)
-        .map{ m, b, g, v ->
-            new_meta = m + [
+        .map{ m, bam, ref, v ->
+
+            def new_meta = m + [
                 build: v
             ]
-            genome = g
-            bam = b
-            db = file(genome.db)
-            fasta = file(genome.fasta)
-            fasta_index = file(genome.fasta_index)
-            pbindex = file(genome.pbindex)
 
-            return [new_meta, [db, fasta, fasta_index, pbindex], bam]
+            def new_ref = [
+                    file(ref.db),
+                    file(ref.fasta),
+                    file(ref.fasta_index),
+                    file(ref.pbindex),
+                    file(ref.sawfish_exclude),
+                    file(ref.sawfish_expect)
+                ]
+
+            return [new_meta, new_ref, bam]
         }
     
     PBMM2_ALIGN(split_genome_ch)

@@ -29,9 +29,9 @@ Module declaration
 ================================================================================
 */
 
-process SAWFISH_DISCOVER {
+process SAMTOOLS_IDXSTATS {
 
-    maxForks 1
+    maxForks 4
     cache 'lenient'
 
     // Set batch name and sample id to tag
@@ -40,34 +40,11 @@ process SAWFISH_DISCOVER {
     // Do not publish data
 
     input:
-    tuple val(meta), path(resource_bundle), path(bam), path(small_variant_vcf)
 
     output:
-    tuple val(meta), path(resource_bundle)
-    
-    script:
-    def out_prefix = ${meta.id}.${meta.build}
-    
-    def threads = 16
 
-    def fasta = resource_bundle[1]
-    def sawfish_exclude = resource_bundle[4]
-    def sawfish_expect = resource_bundle[5]
+    script:
 
     """
-    sawfish --version
-
-    sawfish discover \
-      --threads ${threads} \
-      --disable-path-canonicalization \
-      --ref ${fasta} \
-      --bam ${bam} \
-      --expected-cn ${sawfish_expect} \
-      --cnv-excluded-regions ${sawfish_exclude} \
-      --maf ${small_variant_vcf} \
-      --output-dir ${out_prefix}
-
-    tar --create --verbose --file ${out_prefix}.tar ${out_prefix}
-    rm --recursive --force --verbose ${out_prefix}
     """
 }
