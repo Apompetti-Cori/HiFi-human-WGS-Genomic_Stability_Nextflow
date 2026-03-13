@@ -97,35 +97,42 @@ workflow ALIGN {
         // Reconstruct the input for SPLIT_INPUT_BAM
         return [ meta ]
     }
+    .unique()
 
     process_ch = input_ch
         .combine(process_ch, by: 0)
 
     // Check which build was not aligned to
     check_genome_ch = check_ch.process.map { meta, ref, build, hit ->
-        return [ meta, ref, build ]
+        def id = build + "_" + meta.id
+        return [ id, meta, ref]
     }
+    .unique()
 
-    genome_ch = genome_ch
-        .combine(check_genome_ch, by: 2)
-        .map{ build, m1, r1, m2, r2 ->
-
+    // Whitelist genome channel
+    genome_ch = genome_ch 
+        .map{ meta, ref, build ->
+            def id = build + "_" + meta.id
+            return [ id, meta, ref, build ]
+        }
+        .combine(check_genome_ch, by: 0)
+        .map{ id, m1, r1, build, m2, r2 ->
             return [ m1, r1, build ]
         }
+
 
     // If process_ch has samples inside it run them through the alignment steps
     // Split bams from each sample into smaller bams for aligning
     SPLIT_INPUT_BAM(process_ch)
     split_ch = SPLIT_INPUT_BAM.out.bam
-        .transpose()
+       .transpose()
 
-    // Align each split bam separately
     split_genome_ch = split_ch
         .combine(genome_ch, by: 0)
-        .map{ m, bam, ref, v ->
+        .map{ meta, bam, ref, build ->
 
-            def new_meta = m + [
-                build: v
+            def new_meta = meta + [
+                build : build
             ]
 
             def new_ref = [
@@ -139,7 +146,8 @@ workflow ALIGN {
 
             return [new_meta, new_ref, bam]
         }
-    
+
+    // Align each split bam separately
     PBMM2_ALIGN(split_genome_ch)
 
     // Merge split bam alignments
