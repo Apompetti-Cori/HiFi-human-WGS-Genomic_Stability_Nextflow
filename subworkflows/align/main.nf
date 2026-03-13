@@ -159,7 +159,10 @@ workflow ALIGN {
 
     SAMTOOLS_MERGE(align_ch)
 
-    bam_ch = SAMTOOLS_MERGE.out.bam.collect(flat: false).flatMap().concat(exist_ch)
+    bam_ch = SAMTOOLS_MERGE.out.bam
+        .collect(flat: false)
+        .flatMap()
+        .concat(exist_ch)
 
     emit:
         bam_ch = bam_ch
