@@ -124,3 +124,44 @@ def createGenomeChannel(String sample_table, Map genomes) {
 
     return input_ch
 }
+
+def groupBySample(Channel vcf_ch){
+    output = vcf_ch
+        .map{meta, ref, vcf ->
+            def sample = meta.sample
+            def new_meta = [
+                meta.id, 
+                meta.sample, 
+                meta.build,
+                meta.condition,
+                meta.sex
+            ]
+            return [sample, meta, ref, vcf]
+        }
+        .groupTuple()
+        .map { sample, meta_list, ref_list, vcf_list ->
+
+            // Zip the lists together
+            def zipped = [meta_list, ref_list, vcf_list].transpose()
+            
+            zipped.sort { item -> 
+                item[0].condition == 'WB' ? 0 : 1
+            }
+            
+            // Return them back into independent, safely sorted lists
+            def sorted_metas = zipped.collect { it[0] }
+            def sorted_refs  = zipped.collect { it[1] }
+            def sorted_vcfs  = zipped.collect { it[2] }
+            def meta = sorted_metas[0]
+            def new_meta = [
+                meta.sample,
+                meta.build,
+                meta.sex
+            ]
+            
+            // Return the newly sorted tuple
+            return [new_meta, sorted_refs[0], sorted_vcfs[0], sorted_vcfs[1]]
+        }
+
+    return output
+}
