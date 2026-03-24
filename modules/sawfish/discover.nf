@@ -43,10 +43,10 @@ process SAWFISH_DISCOVER {
     tuple val(meta), path(resource_bundle), path(bam), path(small_variant_vcf)
 
     output:
-    tuple val(meta), path(resource_bundle)
+    tuple val(meta), path(resource_bundle), path(bam), path("*.tar")
     
     script:
-    def out_prefix = ${meta.id}.${meta.build}
+    def out_prefix = "${meta.id}.${meta.build}.discover"
     
     def threads = 16
 
@@ -61,10 +61,10 @@ process SAWFISH_DISCOVER {
       --threads ${threads} \
       --disable-path-canonicalization \
       --ref ${fasta} \
-      --bam ${bam} \
+      --bam ${bam[0]} \
       --expected-cn ${sawfish_expect} \
       --cnv-excluded-regions ${sawfish_exclude} \
-      --maf ${small_variant_vcf} \
+      --maf ${small_variant_vcf[0]} \
       --output-dir ${out_prefix}
 
     tar --create --verbose --file ${out_prefix}.tar ${out_prefix}

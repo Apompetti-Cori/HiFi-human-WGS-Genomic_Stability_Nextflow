@@ -22,7 +22,6 @@ Configurable variables for module
 ================================================================================
 */
 params.outdir = "./nfoutput"
-params.pubdir = "hap.py"
 
 /*
 ================================================================================
@@ -30,35 +29,42 @@ Module declaration
 ================================================================================
 */
 
-process HAPPY {
+process HIPHASE {
 
-    maxForks 1
-
-    conda "/usr/local/programs/miniconda3/envs/hap.py"
+    maxForks 2
+    cache 'lenient'
 
     // Set batch name and sample id to tag
-    tag { meta.batch == '' ? "${meta.id}" : "${meta.batch}_${meta.id}" }
+    tag { meta.batch == '' ? "${meta.id}" : "${meta.batch}_${meta.id}_${meta.build}" }
 
-    // Check batch and save output accordingly
-    publishDir "${params.outdir}", mode: 'link', saveAs: { filename ->
-        return meta.batch == '' ? "${meta.id}/${params.pubdir}/${filename}" : "${meta.batch}/${meta.id}/${params.pubdir}/${filename}"
-    }
+    // Do not publish data
 
     input:
-    tuple val(meta), path(resource_bundle), path(truth_snv), path(query_snv)
+    tuple val(meta), path(resource_bundle), path(bam), path(small_variant_vcf)
 
     output:
-    tuple val(meta), path("stats*"), emit: stats
+    tuple val(meta), path(resource_bundle), path("*.hiphase.vcf.gz"), emit: vcf
+    tuple val(meta), path(resource_bundle), path("*.haplotagged.bam"), emit: bam
+    
+    script: 
+    def threads = 16
 
-    script:
     def fasta = resource_bundle[1]
 
     """
-    /opt/hap.py/bin/hap.py \
-        ${truth_snv[0]} \
-        ${query_snv[0]} \
-        -f ${bed} \
-        -r ${fasta} \
-        -o "stats"
+    hiphase --version
+
+    hiphase --threads ${threads} \
+      --sample-name ${meta.id} \
+      --vcf ${small_variant_vcf[0]} \
+      --reference ${fasta} \
+      --output-vcf "${meta.id}.${meta.build}.hiphase.vcf.gz"\
+      --bam ${bam[0]} \
+      --output-bam ${meta.id}.${meta.build}.haplotagged.bam \
+      --summary-file ${meta.id}.${meta.build}.hiphase.stats.tsv \
+      --blocks-file ${meta.id}.${meta.build}.hiphase.blocks.tsv \
+      --haplotag-file ${meta.id}.${meta.build}.hiphase.haplotags.tsv
+
+    gzip ${meta.id}.${meta.build}.hiphase.haplotags.tsv
     """
 }
