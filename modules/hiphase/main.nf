@@ -31,13 +31,14 @@ Module declaration
 
 process HIPHASE {
 
-    maxForks 2
+    maxForks 3
     cache 'lenient'
 
     // Set batch name and sample id to tag
     tag { meta.batch == '' ? "${meta.id}" : "${meta.batch}_${meta.id}_${meta.build}" }
 
     // Do not publish data
+    storeDir { "${launchDir}/.nextflow/store/${meta.batch}/${meta.id}/${meta.build}/hiphase" }
 
     input:
     tuple val(meta), path(resource_bundle), path(bam), path(small_variant_vcf)
