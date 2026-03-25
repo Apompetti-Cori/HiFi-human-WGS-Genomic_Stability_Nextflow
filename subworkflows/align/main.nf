@@ -58,7 +58,6 @@ workflow ALIGN {
 
     // Create genome channels to merge to preprocessed bams
     genome_ch = createGenomeChannel(sample_table, params.genomes)
-
     
     // Check whether the final output of this subworkflow exists:
     check_ch = genome_ch
@@ -80,16 +79,8 @@ workflow ALIGN {
     exist_ch = check_ch.exists.map { meta, ref, build, hit ->
 
         def new_meta = meta + [build: build]
-        def new_ref = [
-                file(ref.db),
-                file(ref.fasta),
-                file(ref.fasta_index),
-                file(ref.pbindex),
-                file(ref.sawfish_exclude),
-                file(ref.sawfish_expect)
-            ]
             
-        return [new_meta, new_ref, hit]
+        return [new_meta, ref, hit]
     }
 
     // If not, run SPLIT_INPUT_BAM and PBMM2_ALIGN on these samples
@@ -135,16 +126,7 @@ workflow ALIGN {
                 build : build
             ]
 
-            def new_ref = [
-                    file(ref.db),
-                    file(ref.fasta),
-                    file(ref.fasta_index),
-                    file(ref.pbindex),
-                    file(ref.sawfish_exclude),
-                    file(ref.sawfish_expect)
-                ]
-
-            return [new_meta, new_ref, bam]
+            return [new_meta, ref, bam]
         }
 
     // Align each split bam separately
