@@ -22,7 +22,6 @@ Configurable variables for module
 ================================================================================
 */
 params.outdir = "./nfoutput"
-params.pubdir = "hap.py"
 
 /*
 ================================================================================
@@ -34,15 +33,10 @@ process HAPPY {
 
     maxForks 1
 
-    conda "/usr/local/programs/miniconda3/envs/hap.py"
+    // Set sample id to tag
+    tag { "${meta.id}" }
 
-    // Set batch name and sample id to tag
-    tag { meta.batch == '' ? "${meta.id}" : "${meta.batch}_${meta.id}" }
-
-    // Check batch and save output accordingly
-    publishDir "${params.outdir}", mode: 'link', saveAs: { filename ->
-        return meta.batch == '' ? "${meta.id}/${params.pubdir}/${filename}" : "${meta.batch}/${meta.id}/${params.pubdir}/${filename}"
-    }
+    storeDir { "${launchDir}/.nextflow/store/variant_comparisons/${meta.id}/${meta.build}/hap.py" }
 
     input:
     tuple val(meta), path(resource_bundle), path(truth_snv), path(query_snv)
@@ -52,6 +46,7 @@ process HAPPY {
 
     script:
     def fasta = resource_bundle[1]
+    def bed = resource_bundle[6]
 
     """
     /opt/hap.py/bin/hap.py \

@@ -50,11 +50,6 @@ process SAMTOOLS_MERGE {
     def threads = 8
     def bam_files = bams.join(' ')
 
-    def db = resource_bundle[0]
-    def fasta = resource_bundle[1]
-    def fasta_index = resource_bundle[2]
-    def pbindex = resource_bundle[3]
-
     """
     printf "%s\\n" ${bam_files} > bam_list.txt
     samtools merge -@ ${threads} -b bam_list.txt ${meta.id}.${meta.build}.merged.bam

@@ -31,21 +31,20 @@ Module declaration
 
 process HIPHASE {
 
-    maxForks 3
+    maxForks 2
     cache 'lenient'
 
     // Set batch name and sample id to tag
     tag { meta.batch == '' ? "${meta.id}" : "${meta.batch}_${meta.id}_${meta.build}" }
 
-    // Do not publish data
     storeDir { "${launchDir}/.nextflow/store/${meta.batch}/${meta.id}/${meta.build}/hiphase" }
 
     input:
     tuple val(meta), path(resource_bundle), path(bam), path(small_variant_vcf)
 
     output:
-    tuple val(meta), path(resource_bundle), path("*.hiphase.vcf.gz"), emit: vcf
-    tuple val(meta), path(resource_bundle), path("*.haplotagged.bam"), emit: bam
+    tuple val(meta), path(resource_bundle), path("*.hiphase.vcf.gz*"), emit: vcf
+    tuple val(meta), path(resource_bundle), path("*.haplotagged.bam*"), emit: bam
     
     script: 
     def threads = 16

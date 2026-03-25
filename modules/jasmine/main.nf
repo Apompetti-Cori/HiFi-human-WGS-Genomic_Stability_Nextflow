@@ -22,7 +22,6 @@ Configurable variables for module
 ================================================================================
 */
 params.outdir = "./nfoutput"
-params.pubdir = "jasmine"
 
 /*
 ================================================================================
@@ -35,25 +34,17 @@ process JASMINE {
     maxForks 1
     cpus 4
 
-    conda "/usr/local/programs/miniconda3/envs/jasmine"
-
-    // Set batch name and sample id to tag
-    tag { meta.batch == '' ? "${meta.id}" : "${meta.batch}_${meta.id}" }
+    // Set sample id to tag
+    tag { "${meta.id}" }
 
     // Check batch and save output accordingly
-    publishDir "${params.outdir}", mode: 'link', saveAs: { filename ->
-        return meta.batch == '' ? "${meta.id}/${params.pubdir}/${filename}" : "${meta.batch}/${meta.id}/${params.pubdir}/${filename}"
-    }
+    storeDir { "${launchDir}/.nextflow/store/variant_comparisons/${meta.id}/${meta.build}/jasmine" }
 
     input:
-    tuple val(meta), path(truth_sv), path(query_sv)
-    each path(db)
-    each path(bed)
-    each fasta
-    each path(clean)
+    tuple val(meta), path(resource_bundle), path(truth_sv), path(query_sv)
 
     output:
-    tuple val(meta), path("*.jasmine.vcf*"), emit: reads
+    tuple val(meta), path("*.jasmine.vcf*"), emit: vcf
 
     script:
 
