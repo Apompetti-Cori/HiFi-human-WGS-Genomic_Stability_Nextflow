@@ -59,7 +59,7 @@ def createPreprocessChannel(String sample_table) {
             def batch = row.batch
             def condition = row.condition
             def sex = row.sex ?: "FEMALE"
-            def bam = files(row.bam_path, checkIfExists: true).sort{ file -> file.name }
+            def bam = files(row.bam_path, glob: true, checkIfExists: true).sort{ file -> file.name }
             def max_reads_per_alignment_chunk = row.max_reads_per_alignment_chunk ?: 500000
             
             def meta = [
@@ -99,6 +99,7 @@ def createGenomeChannel(String sample_table, Map genomes) {
             def pbindex = row.genome ? genomes[ row.genome ].pbindex ?: false : false
             def sawfish_exclude = row.genome ? genomes[ row.genome ].sawfish_exclude ?: false : false
             def sawfish_expect = row.genome ? genomes[ row.genome ].sawfish_expect[sex] ?: false : false
+            def happy_filter = row.genome ? genomes[ row.genome ].happy_filter ?: false : false
             
             def meta = [
                 id : id,
@@ -110,12 +111,13 @@ def createGenomeChannel(String sample_table, Map genomes) {
             ]
 
             def genome = [
-                db : db,
-                fasta : fasta,
-                fasta_index : fasta_index,
-                pbindex : pbindex,
-                sawfish_exclude : sawfish_exclude,
-                sawfish_expect : sawfish_expect
+                file(db),
+                file(fasta),
+                file(fasta_index),
+                file(pbindex),
+                file(sawfish_exclude),
+                file(sawfish_expect),
+                file(happy_filter)
             ]
 
             [meta, genome, row.genome]
@@ -125,21 +127,15 @@ def createGenomeChannel(String sample_table, Map genomes) {
     return input_ch
 }
 
-def groupBySample(Channel vcf_ch){
-    output = vcf_ch
+def groupBySample(vcf_ch){
+    def output = vcf_ch
         .map{meta, ref, vcf ->
             def sample = meta.sample
-            def new_meta = [
-                meta.id, 
-                meta.sample, 
-                meta.build,
-                meta.condition,
-                meta.sex
-            ]
+
             return [sample, meta, ref, vcf]
         }
         .groupTuple()
-        .map { sample, meta_list, ref_list, vcf_list ->
+        .map { _sample, meta_list, ref_list, vcf_list ->
 
             // Zip the lists together
             def zipped = [meta_list, ref_list, vcf_list].transpose()
@@ -149,9 +145,9 @@ def groupBySample(Channel vcf_ch){
             }
             
             // Return them back into independent, safely sorted lists
-            def sorted_metas = zipped.collect { it[0] }
-            def sorted_refs  = zipped.collect { it[1] }
-            def sorted_vcfs  = zipped.collect { it[2] }
+            def sorted_metas = zipped.collect {it -> it[0] }
+            def sorted_refs  = zipped.collect {it -> it[1] }
+            def sorted_vcfs  = zipped.collect {it -> it[2] }
             def meta = sorted_metas[0]
             def new_meta = [
                 meta.sample,
