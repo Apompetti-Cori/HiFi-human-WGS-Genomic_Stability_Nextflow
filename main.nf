@@ -44,6 +44,7 @@ Include subworkflows to main pipeline
 
 include { ALIGN } from './subworkflows/align/main.nf'
 include { VARIANT_CALLING } from './subworkflows/variant_calling/main.nf'
+include { VARIANT_COMPARISON } from './subworkflows/variant_comparison/main.nf'
 
 /*
 ================================================================================
@@ -52,13 +53,16 @@ Workflow declaration
 */
 
 workflow {
-
-    // Create an empty channel for multiqc input
-    def multiqc_ch = channel.empty()
     
     // Run PBMM2 subworkflow
     ALIGN(params.sample_table)
 
     // Run VARIANT_CALLING subworkflow
-    //VARIANT_CALLING(ALIGN.out.bam_ch)
+    VARIANT_CALLING(ALIGN.out.bam_ch)
+
+    // Run VARIANT_COMPARISON subworkflow
+    VARIANT_COMPARISON(
+        VARIANT_CALLING.out.snv_ch,
+        VARIANT_CALLING.out.sv_ch
+    )
 }
