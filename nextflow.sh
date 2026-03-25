@@ -10,7 +10,7 @@ run $(find . -type f -path '*/HiFi-human-WGS-Genomic-Stability_Nextflow_v2/main.
 -with-report './.nextflow/pipeline_info/execution_report.html' \
 -with-trace './.nextflow/pipeline_info/execution_trace.txt' \
 -profile standard \
---sample_table $(find $(pwd) -type f -name 'sample_table_full.csv')"
+--sample_table $(find $(pwd) -type f -name 'sample_table_all_samples.csv')"
 
 # Print out command
 #echo -e "Executing command:\n$CMD"
