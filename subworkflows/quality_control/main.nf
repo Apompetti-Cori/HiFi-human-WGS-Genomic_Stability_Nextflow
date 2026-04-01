@@ -22,13 +22,12 @@ Configurable variables for pipeline
 ================================================================================
 */
 
-params.sample_table = false
-
 /*
 ================================================================================
 Include modules to main pipeline
 ================================================================================
 */
+include { MULTIQC } from '../../modules/multiqc/main.nf'
 
 /*
 ================================================================================
@@ -38,45 +37,31 @@ Include functions to main pipeline
 
 /*
 ================================================================================
-Include subworkflows to main pipeline
-================================================================================
-*/
-
-include { ALIGN } from './subworkflows/align/main.nf'
-include { VARIANT_CALLING } from './subworkflows/variant_calling/main.nf'
-include { VARIANT_COMPARISON } from './subworkflows/variant_comparison/main.nf'
-include { QUALITY_CONTROL } from './subworkflows/quality_control/main.nf'
-
-/*
-================================================================================
 Workflow declaration
 ================================================================================
 */
 
-workflow {
+workflow QUALITY_CONTROL {
+    take:
+        mqc_ch
 
-    def multiqc_ch = channel.empty()
+    main:
+    multiqc_config = channel.fromPath("${projectDir}/modules/multiqc/multiqc_config.yaml")
 
-    // Run PBMM2 subworkflow
-    ALIGN(params.sample_table)
+    mqc_ch = mqc_ch
+        .flatMap()
+        .map{ meta, file ->
+            def key = [batch: meta.batch, build: meta.build]
+            return [key, file]
+        }
+        .groupTuple(by: 0)
+        .map{ key, files ->
+            return [key, files.flatten()]
+        }
 
-    // Run VARIANT_CALLING subworkflow
-    VARIANT_CALLING(ALIGN.out.bam_ch)
-
-    // Run VARIANT_COMPARISON subworkflow
-    VARIANT_COMPARISON(
-        VARIANT_CALLING.out.snv_ch,
-        VARIANT_CALLING.out.sv_ch,
-        VARIANT_CALLING.out.gvcf_ch
+    MULTIQC(
+        mqc_ch,
+        multiqc_config
     )
-
-    multiqc_ch = multiqc_ch
-        .mix(ALIGN.out.mqc_ch)
-        .mix(VARIANT_CALLING.out.mqc_ch)
-        .mix(VARIANT_COMPARISON.out.mqc_ch)
-        .collect(flat: false)
-        
-
-    QUALITY_CONTROL(multiqc_ch)
 
 }

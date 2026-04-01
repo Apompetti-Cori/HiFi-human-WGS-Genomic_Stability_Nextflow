@@ -21,9 +21,7 @@ nextflow.enable.dsl=2
 Configurable variables for module
 ================================================================================
 */
-
 params.outdir = "./nfoutput"
-params.pubdir = "multiqc"
 
 /*
 ================================================================================
@@ -31,43 +29,38 @@ Module declaration
 ================================================================================
 */
 
+process TRUVARI {
 
-process MULTIQC {
+    maxForks 1
 
-    memory '8 GB'
-    cpus 1
+    // Set sample id to tag
+    tag { "${meta.sample}" }
 
-    // Set batch name and sample id to tag
-    tag { meta.batch == '' ?: "${meta.batch}_${meta.build}" }   
-    
     // Check batch and save output accordingly
-    storeDir {
-        "${launchDir}/.nextflow/store/multiqc/${meta.batch}/${meta.build}"
-    }
+    storeDir { "${launchDir}/.nextflow/store/variant_comparisons/${meta.sample}/${meta.build}/truvari" }
 
     input:
-    tuple val(meta), path('multiqc_input/?/*')
-    each path(multiqc_config)
+    tuple val(meta), path(resource_bundle), path(truth_sv), path(query_sv)
 
     output:
-    path("*.html"), emit: html
-    path("*_data"), emit: data, type: 'dir'
+    tuple val(meta), path("*.truvari_merge.vcf"), emit: vcf
+    tuple val(meta), path("stats_${meta.sample}/*"), emit: stats
+    tuple val(meta), path("stats_${meta.sample}/*.truvari.log.txt"), emit: log
 
     script:
-    if( meta.batch != '' ) {
-        """
-        multiqc multiqc_input/ \
-            --config ${multiqc_config} \
-            --title "MultiQC Report ${meta.batch} - ${meta.build}" \
-            --filename ${meta.batch}.${meta.build}.multiqc_report.html
-        """
-    } else {
-        """
-        multiqc multiqc_input/ \
-            --config ${multiqc_config} \
-            --title "MultiQC Report" \
-            --filename multiqc_report.html
-        """
-    }
+    def fasta = resource_bundle[1]
 
+    """
+    bcftools merge -m none ${truth_sv[0]} ${query_sv[0]} | bgzip > merge.vcf.gz
+    bcftools index -t merge.vcf.gz
+    truvari collapse -i merge.vcf.gz -o ${meta.sample}.truvari_merge.vcf
+
+    truvari bench \
+        -b ${truth_sv[0]} \
+        -c ${query_sv[0]} \
+        -f ${fasta} \
+        -o stats_${meta.sample}/
+
+    mv stats_${meta.sample}/log.txt stats_${meta.sample}/${meta.sample}.truvari.log.txt
+    """
 }

@@ -34,6 +34,7 @@ include { DEEPVARIANT_POSTPROCESS } from '../../modules/deepvariant/postprocess.
 include { SAWFISH_DISCOVER } from '../../modules/sawfish/discover.nf'
 include { SAWFISH_CALL_SINGLE as SAWFISH_CALL } from '../../modules/sawfish/call.nf'
 include { HIPHASE } from '../../modules/hiphase/main.nf'
+include { BCFTOOLS_STATS } from '../../modules/snv_stats/bcftools_stats.nf'
 
 
 /*
@@ -87,6 +88,11 @@ workflow VARIANT_CALLING {
             return [meta, ref, bam, vcf]
         }
 
+    exist_gvcf_ch = check_ch.exists
+        .map { meta, ref, bam, vcf, gvcf ->
+            return [meta, ref, gvcf]
+        }
+
     // If not run Deepvariant steps on process_ch
     process_ch = check_ch.process
         .map { meta, ref, bam, vcf, gvcf ->
@@ -103,7 +109,7 @@ workflow VARIANT_CALLING {
     */
     
     // Scatter job across shards to speed up MAKE_EXAMPLES
-    shard_indices = Channel.of( 0..(params.num_shards - 1) )
+    shard_indices = channel.of( 0..(params.num_shards - 1) )
     shard_indices_ch = shard_indices.combine(
         process_ch
     )
@@ -144,6 +150,11 @@ workflow VARIANT_CALLING {
             return [meta, r1, bam, vcf]
         }
         .concat(exist_ch)
+
+    gvcf_ch = DEEPVARIANT_POSTPROCESS.out.gvcf
+        .collect(flat: false)
+        .flatMap()
+        .concat(exist_gvcf_ch)
 
      /*
     ================================================================================
@@ -256,7 +267,24 @@ workflow VARIANT_CALLING {
         .flatMap()
         .concat(exist_ch)
 
+    phase_bam_ch = HIPHASE.out.bam
+        .collect(flat: false)
+        .flatMap()
+        .concat(exist_ch)
+    
+
+    BCFTOOLS_STATS(
+        phase_ch
+    )
+
+    multiqc_ch = multiqc_ch
+        .mix(BCFTOOLS_STATS.out.stats)
+
     emit:
         snv_ch = phase_ch
+        gvcf_ch = gvcf_ch
         sv_ch = sv_ch
+        bam_ch = phase_bam_ch
+        mqc_ch = multiqc_ch
+
 }

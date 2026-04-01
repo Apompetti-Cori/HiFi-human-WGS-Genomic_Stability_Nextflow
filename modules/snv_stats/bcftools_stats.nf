@@ -21,9 +21,7 @@ nextflow.enable.dsl=2
 Configurable variables for module
 ================================================================================
 */
-
 params.outdir = "./nfoutput"
-params.pubdir = "multiqc"
 
 /*
 ================================================================================
@@ -31,43 +29,38 @@ Module declaration
 ================================================================================
 */
 
+process BCFTOOLS_STATS {
 
-process MULTIQC {
+    maxForks 1
 
-    memory '8 GB'
-    cpus 1
+    // Set sample id to tag
+    tag { "${meta.id}_${meta.build}" }
 
-    // Set batch name and sample id to tag
-    tag { meta.batch == '' ?: "${meta.batch}_${meta.build}" }   
-    
-    // Check batch and save output accordingly
-    storeDir {
-        "${launchDir}/.nextflow/store/multiqc/${meta.batch}/${meta.build}"
-    }
+    storeDir { "${launchDir}/.nextflow/store/${meta.batch}/${meta.id}/${meta.build}/snv_stats" }
 
     input:
-    tuple val(meta), path('multiqc_input/?/*')
-    each path(multiqc_config)
+    tuple val(meta), path(resource_bundle), path(vcf)
 
     output:
-    path("*.html"), emit: html
-    path("*_data"), emit: data, type: 'dir'
+    tuple val(meta), path("*.small_variants.vcf.stats.txt"), emit: stats
 
     script:
-    if( meta.batch != '' ) {
-        """
-        multiqc multiqc_input/ \
-            --config ${multiqc_config} \
-            --title "MultiQC Report ${meta.batch} - ${meta.build}" \
-            --filename ${meta.batch}.${meta.build}.multiqc_report.html
-        """
-    } else {
-        """
-        multiqc multiqc_input/ \
-            --config ${multiqc_config} \
-            --title "MultiQC Report" \
-            --filename multiqc_report.html
-        """
-    }
+    def fasta = resource_bundle[1]
 
+    """
+    bcftools norm \
+        --fasta-ref ${fasta} \
+        --multiallelics - \
+        ${vcf} 2>/dev/null \
+    | bcftools view \
+        --apply-filters .,PASS \
+        --exclude 'GQ<20.0 || GT="ref" || GT="mis" || ALT="."' \
+        --trim-alt-alleles \
+        - \
+    | bcftools stats \
+        --samples ${meta.id} \
+        --fasta-ref ${fasta} \
+        - \
+    > ${meta.id}.${meta.build}.small_variants.vcf.stats.txt
+    """
 }

@@ -30,6 +30,7 @@ Include modules to main pipeline
 include { SPLIT_INPUT_BAM } from '../../modules/split_input_bam/main.nf'
 include { PBMM2_ALIGN } from '../../modules/pbmm2_align/main.nf'
 include { SAMTOOLS_MERGE } from '../../modules/samtools/merge.nf'
+include { MOSDEPTH } from '../../modules/bam_stats/mosdepth.nf'
 
 /*
 ================================================================================
@@ -146,6 +147,13 @@ workflow ALIGN {
         .flatMap()
         .concat(exist_ch)
 
+    MOSDEPTH(bam_ch)
+
+    multiqc_ch = multiqc_ch
+        .mix(MOSDEPTH.out.stats)
+        .mix(MOSDEPTH.out.regions)
+
     emit:
         bam_ch = bam_ch
+        mqc_ch = multiqc_ch
 }

@@ -150,9 +150,10 @@ def groupBySample(vcf_ch){
             def sorted_vcfs  = zipped.collect {it -> it[2] }
             def meta = sorted_metas[0]
             def new_meta = [
-                meta.sample,
-                meta.build,
-                meta.sex
+                sample: meta.sample,
+                batch: "variant_comparison",
+                build: meta.build,
+                sex: meta.sex
             ]
             
             // Return the newly sorted tuple

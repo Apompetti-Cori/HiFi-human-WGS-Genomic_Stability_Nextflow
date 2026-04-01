@@ -1,0 +1,24 @@
+report_header_info:
+  - Contact E-mail: "apompetti@coriell.org"
+  - Application Type: "Genomic Stability Nextflow Pipeline"
+
+use_filename_as_sample_name:
+  true
+
+fn_clean_exts:
+  - "CHM13"
+  - "GRCh38"
+  - ".mosdepth.summary.txt"
+  - ".small_variants.vcf.stats.txt"
+  - "_pe_splitting_report.txt"
+  - ".fastp.json"
+  - ".fastp.html"
+  - ".flagstat.txt"
+  - ".featureCounts.txt"
+  - "_PE_report.txt"
+  - "_SE_report.txt"
+  - ".truvari.log.txt"
+
+sp:
+  truvari/bench:
+    fn: "*.truvari.log.txt"

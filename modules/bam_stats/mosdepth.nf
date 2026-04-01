@@ -21,9 +21,7 @@ nextflow.enable.dsl=2
 Configurable variables for module
 ================================================================================
 */
-
 params.outdir = "./nfoutput"
-params.pubdir = "multiqc"
 
 /*
 ================================================================================
@@ -31,43 +29,34 @@ Module declaration
 ================================================================================
 */
 
+process MOSDEPTH {
 
-process MULTIQC {
+    maxForks 1
 
-    memory '8 GB'
-    cpus 1
+    // Set sample id to tag
+    tag { "${meta.id}_${meta.build}" }
 
-    // Set batch name and sample id to tag
-    tag { meta.batch == '' ?: "${meta.batch}_${meta.build}" }   
-    
-    // Check batch and save output accordingly
-    storeDir {
-        "${launchDir}/.nextflow/store/multiqc/${meta.batch}/${meta.build}"
-    }
+    storeDir { "${launchDir}/.nextflow/store/${meta.batch}/${meta.id}/${meta.build}/bam_stats" }
 
     input:
-    tuple val(meta), path('multiqc_input/?/*')
-    each path(multiqc_config)
+    tuple val(meta), path(resource_bundle), path(bam)
 
     output:
-    path("*.html"), emit: html
-    path("*_data"), emit: data, type: 'dir'
+    tuple val(meta), path("*.mosdepth.summary.txt"), emit: stats
+    tuple val(meta), path("*.regions.bed.gz*"), emit: regions
 
     script:
-    if( meta.batch != '' ) {
-        """
-        multiqc multiqc_input/ \
-            --config ${multiqc_config} \
-            --title "MultiQC Report ${meta.batch} - ${meta.build}" \
-            --filename ${meta.batch}.${meta.build}.multiqc_report.html
-        """
-    } else {
-        """
-        multiqc multiqc_input/ \
-            --config ${multiqc_config} \
-            --title "MultiQC Report" \
-            --filename multiqc_report.html
-        """
-    }
+    def threads = 4
+    def threads_flag = threads > 1 ? "--threads " + (threads - 1) : ""
+    def out_prefix = "${meta.id}.${meta.build}"
 
+    """
+    mosdepth \
+        ${threads_flag} \
+        --by 500 \
+        --no-per-base \
+        --use-median \
+        ${out_prefix} \
+        ${bam[0]}
+    """
 }
